@@ -2000,18 +2000,25 @@ public class PackageInstallerSession extends IPackageInstallerSession.Stub {
                 // inserted above to hold the session active.
                 try {
                     final Int64Ref last = new Int64Ref(0);
-                    FileUtils.copy(incomingFd.getFileDescriptor(), targetPfd.getFileDescriptor(),
-                            lengthBytes, null, Runnable::run,
-                            (long progress) -> {
-                                if (params.sizeBytes > 0) {
-                                    final long delta = progress - last.value;
-                                    last.value = progress;
-                                    synchronized (mProgressLock) {
-                                        setClientProgressLocked(mClientProgress
-                                                + (float) delta / (float) params.sizeBytes);
+                    try {
+                        FileUtils.copy(incomingFd.getFileDescriptor(), targetPfd.getFileDescriptor(),
+                                lengthBytes, null, Runnable::run,
+                                (long progress) -> {
+                                    if (params.sizeBytes > 0) {
+                                        final long delta = progress - last.value;
+                                        last.value = progress;
+                                        synchronized (mProgressLock) {
+                                            setClientProgressLocked(mClientProgress
+                                                    + (float) delta / (float) params.sizeBytes);
+                                        }
                                     }
-                                }
-                            });
+                                });
+                    } catch (IOException e) {
+                        Slog.w(TAG, "FileUtils.copy failed with " + e.getMessage()
+                                + "; falling back to userspace copy");
+                        copyStreamUserspace(incomingFd.getFileDescriptor(),
+                                targetPfd.getFileDescriptor(), lengthBytes, params.sizeBytes, last);
+                    }
                 } finally {
                     IoUtils.closeQuietly(targetPfd);
                     IoUtils.closeQuietly(incomingFd);
@@ -5974,4 +5981,35 @@ public class PackageInstallerSession extends IPackageInstallerSession.Stub {
                 childSessionIdsArray, parentSessionId, isReady, isFailed, isApplied,
                 sessionErrorCode, sessionErrorMessage, preVerifiedDomains);
     }
+
+    private void copyStreamUserspace(FileDescriptor inFd, FileDescriptor outFd, long count,
+            long totalBytes, Int64Ref last) throws IOException {
+        try {
+            android.system.Os.lseek(outFd, 0, android.system.OsConstants.SEEK_SET);
+        } catch (Exception ignored) {
+        }
+        last.value = 0;
+        java.io.FileInputStream is = new java.io.FileInputStream(inFd);
+        FileOutputStream os = new FileOutputStream(outFd);
+        byte[] buffer = new byte[65536];
+        long remaining = count;
+        while (remaining > 0) {
+            int toRead = (int) Math.min(buffer.length, remaining);
+            int read = is.read(buffer, 0, toRead);
+            if (read == -1) {
+                break;
+            }
+            os.write(buffer, 0, read);
+            remaining -= read;
+            if (totalBytes > 0) {
+                last.value += read;
+                synchronized (mProgressLock) {
+                    setClientProgressLocked(mClientProgress
+                            + (float) read / (float) totalBytes);
+                }
+            }
+        }
+        os.flush();
+    }
+
 }

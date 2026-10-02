@@ -2813,8 +2813,12 @@ public final class SystemServer implements Dumpable {
         // Profiling
         if (android.server.Flags.telemetryApisService()) {
             t.traceBegin("StartProfilingCompanion");
-            mSystemServiceManager.startServiceFromJar(PROFILING_SERVICE_LIFECYCLE_CLASS,
-                    PROFILING_SERVICE_JAR_PATH);
+            try {
+                mSystemServiceManager.startServiceFromJar(PROFILING_SERVICE_LIFECYCLE_CLASS,
+                        PROFILING_SERVICE_JAR_PATH);
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting profiling service: " + e);
+            }
             t.traceEnd();
         }
 

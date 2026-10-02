@@ -136,14 +136,14 @@ class SyntheticPasswordCrypto {
             KeyStore keyStore = getKeyStore();
             SecretKey protectorKey = (SecretKey) keyStore.getKey(protectorKeyAlias, null);
             if (protectorKey == null) {
-                throw new IllegalStateException("SP protector key is missing: "
-                        + protectorKeyAlias);
+                Slog.e(TAG, "SP protector key is missing: " + protectorKeyAlias);
+                return null;
             }
             byte[] intermediate = decrypt(protectorSecret, PROTECTOR_SECRET_PERSONALIZATION, blob);
             return decrypt(protectorKey, intermediate);
         } catch (Exception e) {
             Slog.e(TAG, "Failed to decrypt V1 blob", e);
-            throw new IllegalStateException("Failed to decrypt blob", e);
+            return null;
         }
     }
 
@@ -172,18 +172,14 @@ class SyntheticPasswordCrypto {
 
             SecretKey protectorKey = (SecretKey) keyStore.getKey(protectorKeyAlias, null);
             if (protectorKey == null) {
-                throw new IllegalStateException("SP protector key is missing: "
-                        + protectorKeyAlias);
+                Slog.e(TAG, "SP protector key is missing: " + protectorKeyAlias);
+                return null;
             }
             byte[] intermediate = decrypt(protectorKey, blob);
             return decrypt(protectorSecret, PROTECTOR_SECRET_PERSONALIZATION, intermediate);
-        } catch (CertificateException | IOException | BadPaddingException
-                | IllegalBlockSizeException
-                | KeyStoreException | NoSuchPaddingException | NoSuchAlgorithmException
-                | InvalidKeyException | UnrecoverableKeyException
-                | InvalidAlgorithmParameterException e) {
+        } catch (Throwable e) {
             Slog.e(TAG, "Failed to decrypt blob", e);
-            throw new IllegalStateException("Failed to decrypt blob", e);
+            return null;
         }
     }
 

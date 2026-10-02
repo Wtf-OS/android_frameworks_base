@@ -302,20 +302,11 @@ public class WebViewUpdateService extends SystemService {
 
         @Override // Binder call
         public boolean isMultiProcessEnabled() {
-            if (updateServiceV2()) {
-                throw new IllegalStateException(
-                        "isMultiProcessEnabled shouldn't be called if update_service_v2 flag is"
-                                + " set.");
-            }
             return WebViewUpdateService.this.mImpl.isMultiProcessEnabled();
         }
 
         @Override // Binder call
         public void enableMultiProcess(boolean enable) {
-            if (updateServiceV2()) {
-                throw new IllegalStateException(
-                        "enableMultiProcess shouldn't be called if update_service_v2 flag is set.");
-            }
             if (getContext()
                             .checkCallingPermission(
                                     android.Manifest.permission.WRITE_SECURE_SETTINGS)

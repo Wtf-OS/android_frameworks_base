@@ -865,7 +865,9 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv, bool zygote, bool p
     parseRuntimeOption("dalvik.vm.jitpthreadpriority",
                        jitpthreadpriorityOptsBuf,
                        "-Xjitpthreadpriority:");
-    addOption("-Xjitsaveprofilinginfo");
+    if (property_get_bool("dalvik.vm.usejit", true)) {
+        addOption("-Xjitsaveprofilinginfo");
+    }
 
     parseRuntimeOption("dalvik.vm.jitprithreadweight",
                        jitprithreadweightOptBuf,

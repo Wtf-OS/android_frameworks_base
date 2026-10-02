@@ -710,14 +710,11 @@ class WebViewUpdateServiceImpl2 implements WebViewUpdateServiceInterface {
 
     @Override
     public boolean isMultiProcessEnabled() {
-        throw new IllegalStateException(
-                "isMultiProcessEnabled shouldn't be called if update_service_v2 flag is set.");
+        return true;
     }
 
     @Override
     public void enableMultiProcess(boolean enable) {
-        throw new IllegalStateException(
-                "enableMultiProcess shouldn't be called if update_service_v2 flag is set.");
     }
 
     /** Dump the state of this Service. */

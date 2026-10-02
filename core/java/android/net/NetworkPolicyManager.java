@@ -1004,10 +1004,7 @@ public class NetworkPolicyManager {
     @RequiresPermission(android.Manifest.permission.OBSERVE_NETWORK_POLICY)
     public void registerNetworkPolicyCallback(@Nullable Executor executor,
             @NonNull NetworkPolicyCallback callback) {
-        if (Flags.deprecateNetworkPolicyCallback()) {
-            throw new UnsupportedOperationException("NetworkPolicyCallback is no longer supported."
-                    + " Please use ConnectivityManager APIs instead");
-        }
+        // if (Flags.deprecateNetworkPolicyCallback()) { ... } disabled for LineageOS/osprey compatibility
         if (callback == null) {
             throw new NullPointerException("Callback cannot be null.");
         }
@@ -1036,10 +1033,7 @@ public class NetworkPolicyManager {
     @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
     @RequiresPermission(android.Manifest.permission.OBSERVE_NETWORK_POLICY)
     public void unregisterNetworkPolicyCallback(@NonNull NetworkPolicyCallback callback) {
-        if (Flags.deprecateNetworkPolicyCallback()) {
-            throw new UnsupportedOperationException("NetworkPolicyCallback is no longer supported."
-                    + " Please use ConnectivityManager APIs instead");
-        }
+        // if (Flags.deprecateNetworkPolicyCallback()) { ... } disabled for LineageOS/osprey compatibility
         if (callback == null) {
             throw new NullPointerException("Callback cannot be null.");
         }

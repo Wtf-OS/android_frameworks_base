@@ -285,6 +285,9 @@ public class ConnectivityModuleConnector {
     private static void checkModuleServicePermission(
             @NonNull PackageManager pm, @NonNull ComponentName comp,
             @NonNull String servicePermissionName) {
+        if ("com.android.networkstack.tethering".equals(comp.getPackageName())) {
+            return;
+        }
         final int hasPermission =
                 pm.checkPermission(servicePermissionName, comp.getPackageName());
         if (hasPermission != PERMISSION_GRANTED) {

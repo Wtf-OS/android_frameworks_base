@@ -125,15 +125,14 @@ public final class UsbGadgetHidl implements UsbGadgetHal {
 
     static boolean isServicePresent(IndentingPrintWriter pw) {
         try {
-            IUsbGadget.getService(true);
+            return IUsbGadget.getService(false) != null;
         } catch (NoSuchElementException e) {
             logAndPrintException(pw, "connectToProxy: usb gadget hidl hal service not found.", e);
             return false;
         } catch (RemoteException e) {
             logAndPrintException(pw, "IUSBGadget hal service present but failed to get service", e);
+            return false;
         }
-
-        return true;
     }
 
     public UsbGadgetHidl(UsbDeviceManager deviceManager, IndentingPrintWriter pw) {

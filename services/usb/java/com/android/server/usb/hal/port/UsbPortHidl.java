@@ -162,15 +162,14 @@ public final class UsbPortHidl implements UsbPortHal {
 
     static boolean isServicePresent(IndentingPrintWriter pw) {
         try {
-            IUsb.getService(true);
+            return IUsb.getService(false) != null;
         } catch (NoSuchElementException e) {
             logAndPrintException(pw, "connectToProxy: usb hidl hal service not found.", e);
             return false;
         } catch (RemoteException e) {
             logAndPrintException(pw, "IUSB hal service present but failed to get service", e);
+            return false;
         }
-
-        return true;
     }
 
     public UsbPortHidl(UsbPortManager portManager, IndentingPrintWriter pw) {
