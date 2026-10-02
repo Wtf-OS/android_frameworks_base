@@ -2984,7 +2984,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             if (getResolvedLongPressOnPowerBehavior() == LONG_PRESS_POWER_ASSISTANT) {
                 return mLongPressOnPowerAssistantTimeoutMs;
             } else {
-                return super.getLongPressTimeoutMs();
+                // WtfOS: input dispatch on 1GB legacy devices lags >1s, so a
+                // stock 500ms timeout turns every short press into a long
+                // press (power menu). Give the key-up a chance to cancel.
+                return super.getLongPressTimeoutMs() + 1000;
             }
         }
 
@@ -6164,6 +6167,27 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 // handled by camera gesture.
                 mSingleKeyGestureDetector.reset();
                 return;
+            }
+            // Slow legacy devices (>500ms input latency) deliver the wake-up
+            // DOWN long after the press began: the device is already awake,
+            // so the gesture detector would latch beganFromNonInteractive=false
+            // and a quick tap would misfire as long-press (power menu).
+            // If this press predates the last power-button wakeup, it began
+            // while non-interactive: report it as such so the existing
+            // beganFromNonInteractive guards apply.
+            if (interactive) {
+                final PowerManager.WakeData lastWakeUp =
+                        mPowerManagerInternal.getLastWakeup();
+                Slog.d(TAG, "WtfOS power DOWN: interactive=" + interactive
+                        + " downTime=" + event.getDownTime()
+                        + " wakeTime=" + (lastWakeUp != null ? lastWakeUp.wakeTime : -1)
+                        + " wakeReason=" + (lastWakeUp != null ? lastWakeUp.wakeReason : -1));
+                if (lastWakeUp != null
+                        && lastWakeUp.wakeReason == PowerManager.WAKE_REASON_POWER_BUTTON
+                        && event.getDownTime() <= lastWakeUp.wakeTime) {
+                    interactive = false;
+                    Slog.d(TAG, "WtfOS power DOWN: forcing non-interactive (stale wake press)");
+                }
             }
         }
 
