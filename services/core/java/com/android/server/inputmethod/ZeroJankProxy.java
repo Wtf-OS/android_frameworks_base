@@ -44,6 +44,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.ResultReceiver;
 import android.os.ShellCallback;
+import android.util.ExceptionUtils;
 import android.util.Slog;
 import android.view.MotionEvent;
 import android.view.WindowManager;
@@ -245,16 +246,7 @@ final class ZeroJankProxy implements IInputMethodManagerImpl.Callback {
                     userId, imeDispatcher);
             sendOnStartInputResult(client, result, startInputSeq);
             // For first-time client bind, MSG_BIND should arrive after MSG_START_INPUT_RESULT.
-            if (result.result == InputBindResult.ResultCode.SUCCESS_WAITING_IME_SESSION) {
-                InputMethodManagerService imms = ((InputMethodManagerService) mInner);
-                synchronized (ImfLock.class) {
-                    ClientState cs = imms.getClientStateLocked(client);
-                    if (cs != null) {
-                        imms.requestClientSessionLocked(cs, userId);
-                        imms.requestClientSessionForAccessibilityLocked(cs);
-                    }
-                }
-            }
+            requestClientSessionIfNeeded(result, client, userId);
         });
     }
 
@@ -270,8 +262,37 @@ final class ZeroJankProxy implements IInputMethodManagerImpl.Callback {
             IRemoteAccessibilityInputConnection remoteAccessibilityInputConnection,
             int unverifiedTargetSdkVersion, @UserIdInt int userId,
             @NonNull ImeOnBackInvokedDispatcher imeDispatcher) {
-        // Should never be called when flag is enabled i.e. when this proxy is used.
-        return null;
+        // Legacy clients may have the proxy flag disabled in their boot framework.
+        // Use the same queue as addClient and preserve Binder identity via offload.
+        try {
+            return CompletableFuture.supplyAsync(() -> {
+                InputBindResult result = mInner.startInputOrWindowGainedFocus(startInputReason,
+                        client, windowToken, startInputFlags, softInputMode, windowFlags,
+                        editorInfo, inputConnection, remoteAccessibilityInputConnection,
+                        unverifiedTargetSdkVersion, userId, imeDispatcher);
+                requestClientSessionIfNeeded(result, client, userId);
+                return result;
+            }, this::offload).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while starting IME input", e);
+        } catch (ExecutionException e) {
+            throw ExceptionUtils.propagate(e.getCause());
+        }
+    }
+
+    private void requestClientSessionIfNeeded(InputBindResult result,
+            IInputMethodClient client, @UserIdInt int userId) {
+        if (result.result == InputBindResult.ResultCode.SUCCESS_WAITING_IME_SESSION) {
+            InputMethodManagerService imms = ((InputMethodManagerService) mInner);
+            synchronized (ImfLock.class) {
+                ClientState cs = imms.getClientStateLocked(client);
+                if (cs != null) {
+                    imms.requestClientSessionLocked(cs, userId);
+                    imms.requestClientSessionForAccessibilityLocked(cs);
+                }
+            }
+        }
     }
 
     @Override
