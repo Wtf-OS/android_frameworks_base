@@ -452,7 +452,7 @@ public class BatteryExternalStatsWorker implements BatteryStatsImpl.ExternalStat
             } else {
                 // We were asked to fetch Bluetooth data.
                 final BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-                if (adapter != null) {
+                if (adapter != null && adapter.isLeEnabled()) {
                     SynchronousResultReceiver resultReceiver =
                             new SynchronousResultReceiver("bluetooth");
                     adapter.requestControllerActivityEnergyInfo(
