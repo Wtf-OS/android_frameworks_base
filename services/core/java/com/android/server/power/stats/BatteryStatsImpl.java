@@ -402,7 +402,7 @@ public class BatteryStatsImpl extends BatteryStats {
             }
 
             BluetoothAdapter adapter = mBluetoothManager.getAdapter();
-            if (adapter == null) {
+            if (adapter == null || !adapter.isLeEnabled()) {
                 return false;
             }
 
