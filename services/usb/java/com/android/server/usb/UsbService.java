@@ -238,7 +238,8 @@ public class UsbService extends IUsbManager.Stub {
             mAuthManager = new UsbAuthManager(context, mUserManager, mHostManager);
             mHostManager.setAuthManager(mAuthManager);
         }
-        if (new File("/sys/class/android_usb").exists()) {
+        if (new File("/sys/class/android_usb").exists()
+                || SystemProperties.getBoolean("sys.usb.configfs", false)) {
             mDeviceManager = new UsbDeviceManager(context, mAlsaManager, mSettingsManager,
                     mPermissionManager);
         }
